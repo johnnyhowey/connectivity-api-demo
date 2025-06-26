@@ -89,6 +89,53 @@ app.get('/api/alloy/connectors/:connectorId/actions/:actionId', async (req, res)
     }
 });
 
+// Proxy endpoint for executing an Alloy action
+app.post('/api/alloy/connectors/:connectorId/actions/:actionId/execute', async (req, res) => {
+    const { connectorId, actionId } = req.params;
+    let alloyApiUrl = `https://production.runalloy.com/connectors/${connectorId}/actions/${actionId}/execute`;
+    const { credentialId, requestBody, queryParameters, pathParameters } = req.body;
+    console.log(`[Backend Proxy] Executing Alloy action: ${alloyApiUrl}`);
+
+    // Replace path parameters in the URL if provided
+    if (pathParameters && typeof pathParameters === 'object') {
+        Object.entries(pathParameters).forEach(([key, value]) => {
+            // Replace :key or {key} in the path
+            alloyApiUrl = alloyApiUrl.replace(`:${key}`, encodeURIComponent(value));
+            alloyApiUrl = alloyApiUrl.replace(`{${key}}`, encodeURIComponent(value));
+        });
+    }
+
+    // Append query parameters if provided
+    if (queryParameters && typeof queryParameters === 'object' && Object.keys(queryParameters).length > 0) {
+        const queryString = Object.entries(queryParameters)
+            .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
+            .join('&');
+        alloyApiUrl += (alloyApiUrl.includes('?') ? '&' : '?') + queryString;
+    }
+
+    try {
+        const response = await axios.post(alloyApiUrl, {
+            credentialId,
+            requestBody
+        }, {
+            headers: {
+                'Authorization': `Bearer ${ALLOY_SERVER_API_KEY}`,
+                'x-api-version': '2025-06',
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            }
+        });
+        res.json(response.data);
+    } catch (error) {
+        console.error('[Backend Proxy] Error executing Alloy action:', error.response ? { status: error.response.status, data: error.response.data } : error.message);
+        if (error.response) {
+            res.status(error.response.status).json(error.response.data);
+        } else {
+            res.status(500).json({ message: 'Failed to execute Alloy action due to an internal server error.' });
+        }
+    }
+});
+
 app.listen(port, () => {
   
   console.log(`Server is running on http://localhost:${port}`);
