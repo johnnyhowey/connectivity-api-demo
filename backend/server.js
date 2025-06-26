@@ -114,10 +114,14 @@ app.post('/api/alloy/connectors/:connectorId/actions/:actionId/execute', async (
     }
 
     try {
-        const response = await axios.post(alloyApiUrl, {
-            credentialId,
-            requestBody
-        }, {
+        // If frontend sends a 'body' property, use it as the post body
+        let postBody;
+        if (req.body.body && typeof req.body.body === 'object') {
+            postBody = req.body.body;
+        } else {
+            postBody = { credentialId, requestBody, queryParameters, pathParameters };
+        }
+        const response = await axios.post(alloyApiUrl, postBody, {
             headers: {
                 'Authorization': `Bearer ${ALLOY_SERVER_API_KEY}`,
                 'x-api-version': '2025-06',
