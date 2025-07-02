@@ -1,6 +1,6 @@
 # Connectivity API Demo (React + Node.js)
 
-This is a simple web application to demonstrate a React frontend UI communicating with a Node.js backend REST API.
+This is a demo application built in React and Node.js to demostrate how to interact with 3rd party applications using Connecivity API
 
 ## Project Structure
 
